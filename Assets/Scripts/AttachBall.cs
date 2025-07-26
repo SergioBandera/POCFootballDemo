@@ -11,12 +11,8 @@ public class AttachBall : MonoBehaviour
     private float cooldownTimer = 0f;
     [SerializeField] private Transform _playerWithBall; // Asignar en inspector
 
-    void Start()
-    {
-        
-    }
-
     // Update is called once per frame
+
     private void Update()
     {
         if (cooldownTimer > 0f)
@@ -27,8 +23,7 @@ public class AttachBall : MonoBehaviour
     {
         if (_ball != null && _playerWithBall != null && _ballRb.isKinematic)
         {
-            _ball.transform.position = _playerWithBall.position + _playerWithBall.forward * 0.8f + Vector3.up * 0.40f;
-            _ball.transform.rotation = _playerWithBall.rotation;
+            _ball.transform.SetPositionAndRotation(_playerWithBall.position + _playerWithBall.forward * 0.6f + Vector3.up * 0.40f, _playerWithBall.rotation);
         }
     }
 
@@ -39,7 +34,6 @@ public class AttachBall : MonoBehaviour
             _ball = collision.gameObject;
             _ballRb = _ball.GetComponent<Rigidbody>();
             _ballCollider = _ball.GetComponent<Collider>();
-
             _ballRb.isKinematic = true;
             _ballCollider.enabled = false;
             //SetTeamHaveBallByTag(gameObject.tag);

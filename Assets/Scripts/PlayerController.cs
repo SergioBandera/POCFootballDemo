@@ -5,11 +5,27 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 5.0f;           // Velocidad de movimiento del personaje
     public float rotationSpeed = 10.0f;      // Velocidad de rotación (factor de Slerp)
 
-    private Rigidbody _charRb;               // Referencia al componente Rigidbody
+    private Rigidbody _charRb;    
+    [SerializeField] private Transform _ball;
+    private Rigidbody _ballRb;
+    private Collider _ballCol;
+    private Collider _charCol; 
+    // Referencia al componente Rigidbody
 
-    void Start()
+    void Awake()
     {
         _charRb = GetComponent<Rigidbody>();
+        _ballRb = _ball.GetComponent<Rigidbody>();
+        _ballCol = _ball.GetComponent<Collider>();
+        _charCol = GetComponent<Collider>();
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            OnShoot();
+        }
     }
 
     // FixedUpdate es recomendable para operaciones de física
@@ -41,4 +57,33 @@ public class PlayerMovement : MonoBehaviour
             _charRb.MoveRotation(smoothedRotation);
         }
     }
+    private void OnShoot()
+    {
+        if (_ball != null)
+            {
+        Debug.Log("Shooting the ball...");
+            Debug.Log(_ballRb);
+
+            Debug.Log(_ballCol);
+            Debug.Log(_charCol);
+            
+
+            if (_ballRb != null && _ballCol != null && _charCol != null)
+                {
+                    _ballCol.enabled = true;
+                    Physics.IgnoreCollision(_ballCol, _charCol, true);
+                    _ballRb.isKinematic = false;
+
+                    // Levanta la pelota al chutar
+                    Vector3 kickDirection = (transform.forward + Vector3.up * 0.3f).normalized;
+                    float kickForce = 20f;
+                    _ballRb.AddForce(kickDirection * kickForce, ForceMode.Impulse);
+                    //attachBallScript.ClearAttachedBall();
+                    //UpdateBallReferences();
+                    //SetControlledByAI();
+                }
+            }
+
+    }
+
 }
