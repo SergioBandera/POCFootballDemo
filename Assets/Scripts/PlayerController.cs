@@ -61,13 +61,6 @@ public class PlayerMovement : MonoBehaviour
     {
         if (_ball != null)
             {
-        Debug.Log("Shooting the ball...");
-            Debug.Log(_ballRb);
-
-            Debug.Log(_ballCol);
-            Debug.Log(_charCol);
-            
-
             if (_ballRb != null && _ballCol != null && _charCol != null)
                 {
                     _ballCol.enabled = true;
@@ -76,7 +69,7 @@ public class PlayerMovement : MonoBehaviour
 
                     // Levanta la pelota al chutar
                     Vector3 kickDirection = (transform.forward + Vector3.up * 0.3f).normalized;
-                    float kickForce = 20f;
+                    float kickForce = 10f;
                     _ballRb.AddForce(kickDirection * kickForce, ForceMode.Impulse);
                     //attachBallScript.ClearAttachedBall();
                     //UpdateBallReferences();
