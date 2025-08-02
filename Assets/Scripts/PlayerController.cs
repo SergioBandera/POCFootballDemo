@@ -26,6 +26,10 @@ public class PlayerMovement : MonoBehaviour
         {
             OnShoot();
         }
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            OnPass();
+        }
     }
 
     // FixedUpdate es recomendable para operaciones de física
@@ -76,6 +80,13 @@ public class PlayerMovement : MonoBehaviour
                     //SetControlledByAI();
                 }
             }
+
+    }
+
+    private void OnPass()
+    {
+        Debug.Log("vamos a dar un pase");
+        GameManager.Instance.GetPossession();
 
     }
 

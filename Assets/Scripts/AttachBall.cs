@@ -36,13 +36,14 @@ public class AttachBall : MonoBehaviour
             _ballCollider = _ball.GetComponent<Collider>();
             _ballRb.isKinematic = true;
             _ballCollider.enabled = false;
+            GameManager.Instance.SetPossession(gameObject);
             //SetTeamHaveBallByTag(gameObject.tag);
             //playerManager?.SelectPlayerWithBall();
             //PlayerController playerController = GetComponent<PlayerController>();
             //if (playerController != null)
             //{
-                //playerController.UpdateBallReferences();
-                //playerController.SetControlledByPlayer(true); // Ahora el jugador es controlado por el usuario
+            //playerController.UpdateBallReferences();
+            //playerController.SetControlledByPlayer(true); // Ahora el jugador es controlado por el usuario
             //}
             //Debug.Log($"Jugador {gameObject.name} recibe la pelota en {transform.position}");
         }
