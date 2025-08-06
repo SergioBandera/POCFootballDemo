@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 5.0f;           // Velocidad de movimiento del personaje
     public float rotationSpeed = 10.0f;      // Velocidad de rotación (factor de Slerp)
@@ -10,7 +10,10 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody _ballRb;
     private Collider _ballCol;
     private Collider _charCol;
-    // Referencia al componente Rigidbody
+    private AttachBall attachBallScript;
+
+    private bool isAutoMovingToBall = false;
+    private Vector3 autoMoveTarget;
 
     void Awake()
     {
@@ -18,105 +21,106 @@ public class PlayerMovement : MonoBehaviour
         _ballRb = _ball.GetComponent<Rigidbody>();
         _ballCol = _ball.GetComponent<Collider>();
         _charCol = GetComponent<Collider>();
+        attachBallScript = GetComponent<AttachBall>();
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        // Solo permite acciones si este jugador es el que tiene la pelota
+        if (GameManager.Instance.GetPlayerWithBall() == attachBallScript)
         {
-            OnShoot();
-        }
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            OnPass();
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                OnShoot();
+            }
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                OnPass();
+            }
         }
     }
 
-    // FixedUpdate es recomendable para operaciones de física
     void FixedUpdate()
     {
+        if (isAutoMovingToBall)
+        {
+            Vector3 direction = (autoMoveTarget - transform.position).normalized;
+            Vector3 moveToBallVelocity = direction * moveSpeed;
+            Vector3 NewPjPosition = _charRb.position + moveToBallVelocity * Time.fixedDeltaTime;
+            _charRb.MovePosition(NewPjPosition);
+
+            // Rotar hacia la pelota
+            if (direction.magnitude > 0.01f)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                Quaternion smoothedRotation = Quaternion.Slerp(_charRb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+                _charRb.MoveRotation(smoothedRotation);
+            }
+
+            // Si está suficientemente cerca, para el movimiento automático
+            if (Vector3.Distance(transform.position, autoMoveTarget) < 0.5f)
+            {
+                isAutoMovingToBall = false;
+            }
+            return; // No procesar input manual mientras va a por la pelota
+        }
 
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        // 2. Calcular el vector de movimiento en el plano XZ (horizontal)
-        // Similar a tu 'new Vector3(inputVector.x, 0f, inputVector.y)'
         Vector3 moveDirection = new Vector3(horizontalInput, 0f, verticalInput).normalized;
-
-        // 3. Calcular la velocidad de movimiento
         Vector3 moveVelocity = moveDirection * moveSpeed;
-
-        // 4. Calcular la nueva posición y aplicar el movimiento al Rigidbody
         Vector3 newPosition = _charRb.position + moveVelocity * Time.fixedDeltaTime;
         _charRb.MovePosition(newPosition);
 
-        // 5. Rotar el personaje para que mire en la dirección del movimiento
-        // Solo si hay movimiento para evitar que el personaje rote cuando está quieto
-        // Usamos un pequeño umbral para evitar rotaciones por ruido de input o cuando el movimiento es mínimo
         if (moveDirection.magnitude > 0.01f)
         {
-            // Calcula la rotación deseada
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             Quaternion smoothedRotation = Quaternion.Slerp(_charRb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
             _charRb.MoveRotation(smoothedRotation);
         }
     }
+
     private void OnShoot()
     {
         if (_ball != null)
         {
             if (_ballRb != null && _ballCol != null && _charCol != null)
             {
-                _ballCol.enabled = true;
-                Physics.IgnoreCollision(_ballCol, _charCol, true);
-                _ballRb.isKinematic = false;
+                GameManager.Instance.SetPossession(null);
 
-                // Levanta la pelota al chutar
                 Vector3 kickDirection = (transform.forward + Vector3.up * 0.3f).normalized;
                 float kickForce = 10f;
                 _ballRb.AddForce(kickDirection * kickForce, ForceMode.Impulse);
-                //attachBallScript.ClearAttachedBall();
-                //UpdateBallReferences();
-                //SetControlledByAI();
             }
         }
-
     }
 
     private void OnPass()
     {
-        Debug.Log("vamos a dar un pase");
         SelectTeamMateForPass();
     }
+
     private void SelectTeamMateForPass()
     {
-        // Obtén todos los jugadores con el mismo tag (compañeros de equipo)
         GameObject[] teamMates = GameObject.FindGameObjectsWithTag(gameObject.tag);
         GameObject closestMate = null;
         float closestDistance = Mathf.Infinity;
-        Vector3 passDirection = transform.forward;
 
         foreach (GameObject mate in teamMates)
         {
-            if (mate == gameObject) continue; // Ignora a sí mismo
+            if (mate == gameObject) continue;
 
             Vector3 toMate = (mate.transform.position - transform.position).normalized;
-            float angle = Vector3.Angle(passDirection, toMate);
+            float angle = Vector3.Angle(transform.forward, toMate);
 
-            // Considera solo los que están casi en línea recta (por ejemplo, menos de 10 grados)
             if (angle < 20f)
             {
-                // Comprueba si hay línea de visión usando Raycast
-                RaycastHit hit;
-               
-;                float distance = Vector3.Distance(transform.position, mate.transform.position);
-                if (!Physics.Raycast(transform.position, toMate, out hit, distance) || hit.collider.gameObject == mate)
+                float distance = Vector3.Distance(transform.position, mate.transform.position);
+                if (distance < closestDistance)
                 {
-                    if (distance < closestDistance)
-                    {
-                        closestDistance = distance;
-                        closestMate = mate;
-                    }
+                    closestDistance = distance;
+                    closestMate = mate;
                 }
             }
         }
@@ -124,7 +128,15 @@ public class PlayerMovement : MonoBehaviour
         if (closestMate != null)
         {
             Debug.Log($"Pasando el balón a {closestMate.name}");
+            GameManager.Instance.SetPossession(null);
             PassBallToMate(closestMate.transform);
+
+            // Hacer que el receptor vaya a por la pelota
+            PlayerController mateMovement = closestMate.GetComponent<PlayerController>();
+            if (mateMovement != null)
+            {
+                mateMovement.MoveToBall(_ball.position);
+            }
         }
         else
         {
@@ -134,15 +146,30 @@ public class PlayerMovement : MonoBehaviour
 
     private void PassBallToMate(Transform mateTransform)
     {
-        
         if (_ballRb != null)
         {
-            _ballCol.enabled = true;
-            _ballRb.isKinematic = false;
             Vector3 passDirection = (mateTransform.position - transform.position).normalized;
-            float passForce = 8f;
+            float passForce = 15f;
             _ballRb.AddForce(passDirection * passForce, ForceMode.Impulse);
         }
     }
 
+    public void MoveToBall(Vector3 targetPosition)
+    {
+        isAutoMovingToBall = true;
+        autoMoveTarget = targetPosition;
+    }
+
+    public void StopAutoMove()
+    {
+        Debug.Log("Deteniendo movimiento automático al recibir la pelota");
+        isAutoMovingToBall = false;
+        if (_charRb != null)
+        {
+            _charRb.velocity = Vector3.zero;
+            _charRb.angularVelocity = Vector3.zero;
+            _charRb.constraints = RigidbodyConstraints.FreezeRotation; // Opcional si no quieres más rotaciones físicas
+
+        }
+    }
 }
