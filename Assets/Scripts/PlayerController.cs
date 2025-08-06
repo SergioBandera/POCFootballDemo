@@ -5,11 +5,11 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 5.0f;           // Velocidad de movimiento del personaje
     public float rotationSpeed = 10.0f;      // Velocidad de rotación (factor de Slerp)
 
-    private Rigidbody _charRb;    
+    private Rigidbody _charRb;
     [SerializeField] private Transform _ball;
     private Rigidbody _ballRb;
     private Collider _ballCol;
-    private Collider _charCol; 
+    private Collider _charCol;
     // Referencia al componente Rigidbody
 
     void Awake()
@@ -35,9 +35,9 @@ public class PlayerMovement : MonoBehaviour
     // FixedUpdate es recomendable para operaciones de física
     void FixedUpdate()
     {
-      
-        float horizontalInput = Input.GetAxis("Horizontal"); 
-        float verticalInput = Input.GetAxis("Vertical");   
+
+        float horizontalInput = Input.GetAxis("Horizontal");
+        float verticalInput = Input.GetAxis("Vertical");
 
         // 2. Calcular el vector de movimiento en el plano XZ (horizontal)
         // Similar a tu 'new Vector3(inputVector.x, 0f, inputVector.y)'
@@ -64,30 +64,85 @@ public class PlayerMovement : MonoBehaviour
     private void OnShoot()
     {
         if (_ball != null)
-            {
+        {
             if (_ballRb != null && _ballCol != null && _charCol != null)
-                {
-                    _ballCol.enabled = true;
-                    Physics.IgnoreCollision(_ballCol, _charCol, true);
-                    _ballRb.isKinematic = false;
+            {
+                _ballCol.enabled = true;
+                Physics.IgnoreCollision(_ballCol, _charCol, true);
+                _ballRb.isKinematic = false;
 
-                    // Levanta la pelota al chutar
-                    Vector3 kickDirection = (transform.forward + Vector3.up * 0.3f).normalized;
-                    float kickForce = 10f;
-                    _ballRb.AddForce(kickDirection * kickForce, ForceMode.Impulse);
-                    //attachBallScript.ClearAttachedBall();
-                    //UpdateBallReferences();
-                    //SetControlledByAI();
-                }
+                // Levanta la pelota al chutar
+                Vector3 kickDirection = (transform.forward + Vector3.up * 0.3f).normalized;
+                float kickForce = 10f;
+                _ballRb.AddForce(kickDirection * kickForce, ForceMode.Impulse);
+                //attachBallScript.ClearAttachedBall();
+                //UpdateBallReferences();
+                //SetControlledByAI();
             }
+        }
 
     }
 
     private void OnPass()
     {
         Debug.Log("vamos a dar un pase");
-        GameManager.Instance.GetPossession();
+        SelectTeamMateForPass();
+    }
+    private void SelectTeamMateForPass()
+    {
+        // Obtén todos los jugadores con el mismo tag (compañeros de equipo)
+        GameObject[] teamMates = GameObject.FindGameObjectsWithTag(gameObject.tag);
+        GameObject closestMate = null;
+        float closestDistance = Mathf.Infinity;
+        Vector3 passDirection = transform.forward;
 
+        foreach (GameObject mate in teamMates)
+        {
+            if (mate == gameObject) continue; // Ignora a sí mismo
+
+            Vector3 toMate = (mate.transform.position - transform.position).normalized;
+            float angle = Vector3.Angle(passDirection, toMate);
+
+            // Considera solo los que están casi en línea recta (por ejemplo, menos de 10 grados)
+            if (angle < 20f)
+            {
+                // Comprueba si hay línea de visión usando Raycast
+                RaycastHit hit;
+               
+;                float distance = Vector3.Distance(transform.position, mate.transform.position);
+                if (!Physics.Raycast(transform.position, toMate, out hit, distance) || hit.collider.gameObject == mate)
+                {
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        closestMate = mate;
+                    }
+                }
+            }
+        }
+
+        if (closestMate != null)
+        {
+            Debug.Log($"Pasando el balón a {closestMate.name}");
+            PassBallToMate(closestMate.transform);
+        }
+        else
+        {
+            Debug.Log("No hay compañero en línea recta para el pase.");
+        }
+    }
+
+    private void PassBallToMate(Transform mateTransform)
+    {
+        
+        if (_ballRb != null)
+        {
+            _ballCol.enabled = true;
+            _ballRb.isKinematic = false;
+            Vector3 passDirection = (mateTransform.position - transform.position).normalized;
+            float passForce = 8f;
+            _ballRb.AddForce(passDirection * passForce, ForceMode.Impulse);
+        }
     }
 
 }

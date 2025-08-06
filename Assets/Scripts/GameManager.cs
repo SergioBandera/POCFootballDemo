@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
         else
             Destroy(gameObject);
     }
-   
+
     public void SetPossession(GameObject character)
     {
         if (character == null)
@@ -22,20 +22,20 @@ public class GameManager : MonoBehaviour
             TeamWithPossession = TeamType.None;
         }
         else
-        {   
+        {
 
             if (character.CompareTag("RedTeam"))
             {
-            TeamWithPossession = TeamType.RedTeam;
+                TeamWithPossession = TeamType.RedTeam;
             }
-             else if (character.CompareTag("BlueTeam"))
-             {
-            TeamWithPossession = TeamType.BlueTeam;
-             }
+            else
+            {
+                TeamWithPossession = TeamType.BlueTeam;
+            }
         }
- 
-            
-        
+
+
+
     }
 
     public TeamType GetPossession()
